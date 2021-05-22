@@ -18,7 +18,7 @@ typedef struct
   float aK, vK, xK, jK;
   float DeltaTime, DeltaTime2, DeltaTime3;
   float HalfLife, Boost;
-  PT1_Filter_Struct VelocityFilter, AcelerationFilter, JerkFilter;
+  PT1_Filter_Struct BoostFilter, VelocityFilter, AcelerationFilter, JerkFilter;
 } AlphaBetaGammaFilter_Struct;
 
 void PT1FilterInitialization(PT1_Filter_Struct *Filter_Pointer, float K) {
@@ -52,6 +52,7 @@ void ABG_Initialization(AlphaBetaGammaFilter_Struct *Filter_Pointer, float Alpha
   Filter_Pointer->DeltaTime2 = DeltaTime * DeltaTime;
   Filter_Pointer->DeltaTime3 = DeltaTime * DeltaTime * DeltaTime;
 
+  PT1FilterInitialization(&Filter_Pointer->BoostFilter, PT1FilterCalculeGain(100, DeltaTime));
   PT1FilterInitialization(&Filter_Pointer->VelocityFilter, PT1FilterCalculeGain(75, DeltaTime));
   PT1FilterInitialization(&Filter_Pointer->AcelerationFilter, PT1FilterCalculeGain(50, DeltaTime));
   PT1FilterInitialization(&Filter_Pointer->JerkFilter, PT1FilterCalculeGain(25, DeltaTime));
@@ -80,7 +81,7 @@ float AlphaBetaGammaApply(AlphaBetaGammaFilter_Struct *Filter_Pointer, float Inp
   rK = Input - Filter_Pointer->xK;
 
   //AUMENTA ARTIFICIALMENTE O ERRO PARA AUMENTAR A RESPOSTA DO FILTRO
-  rK += (fabsf(rK) * rK * Filter_Pointer->Boost);
+  rK += PT1FilterApply(&Filter_Pointer->BoostFilter, (fabsf(rK) * rK * Filter_Pointer->Boost));
 
   //ATUALIZA A ESTIMATIVA DE ERRO RESIDUAL
   Filter_Pointer->xK += Filter_Pointer->a * rK;
